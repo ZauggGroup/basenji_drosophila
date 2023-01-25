@@ -106,3 +106,7 @@ venv.bak/
 
 #PyCharm
 .idea/
+
+# files
+*.png
+*.txt

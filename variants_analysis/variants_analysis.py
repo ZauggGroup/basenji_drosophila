@@ -1,4 +1,5 @@
 import os
+import math
 import h5py
 import numpy as np
 import pandas as pd
@@ -100,13 +101,19 @@ def create_peaks_plots(reference_current, alternative_current, track):
 
 if __name__ == '__main__':
     important_tracks = {'twi.24': 12, 'bin.1012': 94, 'ctcf.68': 271, 'mef2.1012': 467, 'mef2.68': 628, 'bin.68': 1152}
-    reference_pred_dirs = [r'/g/scb/zaugg/stojanov/basenji/experiments/variants_predictions/ref_preds_bin_1012h']
-    alternative_pred_dirs = [r'/g/scb/zaugg/stojanov/basenji/experiments/variants_predictions/alt_preds_bin_1012h']
-    alt_bed_files = [r'/g/scb/zaugg/stojanov/basenji/experiments/variants_predictions/GATK_raw_bin_1012h_alt.bed']
-    ref_bed_files = [r'/g/scb/zaugg/stojanov/basenji/experiments/variants_predictions/GATK_raw_bin_1012h_ref.bed']
-    tracks = [('bin.1012', important_tracks['bin.1012'])]
-    variants_file = r'/g/scb/zaugg/stojanov/basenji/experiments/data/quantified_variants_all_conditions.txt'
+    reference_pred_dirs = ['/g/scb/zaugg/stojanov/basenji/experiments/variants_predictions/ref_preds_twi_24h',
+                           '/g/scb/zaugg/stojanov/basenji/experiments/variants_predictions/ref_preds_bin_1012h']
+    alternative_pred_dirs = ['/g/scb/zaugg/stojanov/basenji/experiments/variants_predictions/alt_preds_twi_24h',
+                             '/g/scb/zaugg/stojanov/basenji/experiments/variants_predictions/alt_preds_bin_1012h']
+    alt_bed_files = ['/g/scb/zaugg/stojanov/basenji/experiments/variants_predictions/GATK_raw_twi_24h_alt.bed',
+                     '/g/scb/zaugg/stojanov/basenji/experiments/variants_predictions/GATK_raw_bin_1012h_alt.bed']
+    ref_bed_files = ['/g/scb/zaugg/stojanov/basenji/experiments/variants_predictions/GATK_raw_twi_24h_ref.bed',
+                     '/g/scb/zaugg/stojanov/basenji/experiments/variants_predictions/GATK_raw_bin_1012h_ref.bed']
+    tracks = [('twi.24', important_tracks['twi.24']), ('bin.1012', important_tracks['bin.1012'])]
+    variants_file = '/g/scb/zaugg/stojanov/basenji/experiments/data/quantified_variants_all_conditions.txt'
+    peaks_file = '/g/scb/zaugg/stojanov/basenji/experiments/data/peaks_all_conditions.txt'
     variants = pd.read_csv(variants_file, sep=r'\s+', header=0, index_col=False)
+    peaks = pd.read_csv(peaks_file, sep=r'\s+', header=0, index_col=False)
     for reference_pred_dir, alternative_pred_dir, track, alt_bed_file, ref_bed_file in zip(reference_pred_dirs,
                                                                                            alternative_pred_dirs,
                                                                                            tracks, alt_bed_files,
@@ -126,10 +133,11 @@ if __name__ == '__main__':
         f = h5py.File(os.path.join(alternative_pred_dir, 'predict.h5'))
         alt_preds = f['preds'][:]
 
-        label, ind = track
-        ref_ti = reference_preds[:, :, ind]
-        alt_ti = alt_preds[:, :, ind]
-        create_peaks_plots(ref_ti, alt_ti, label)
+        track_label, track_ind = track
+        ref_ti = reference_preds[:, :, track_ind]
+        alt_ti = alt_preds[:, :, track_ind]
+        # create_peaks_plots(ref_ti, alt_ti, track_label)
+        current_peaks = peaks.loc[peaks['condition'] == track_label]
         diffs = []
         ais = []
         labels = []
@@ -143,19 +151,27 @@ if __name__ == '__main__':
             # print('center', np.abs(ref_ti[i, 448] - alt_ti[i, 448]))
             # plt = plot_tracks(tracks, 'target_interval')
             # plt.savefig(f'track_seq{i}')
-            diff = np.abs(ref_ti[i, 448] - alt_ti[alt_seqs[seq], 448])
             current = variants.loc[
-                (variants['variant_id'] == '_'.join(seq.split('_')[:2])) & (variants['condition'] == track[0])]
+                (variants['variant_id'] == '_'.join(seq.split('_')[:2])) & (variants['condition'] == track_label)]
             if current.shape[0] == 0:
                 continue
-            ai_val = current[['AI']].values[0, 0]
-            significant = current[['significant']].values[0, 0]
-            diffs.append(diff)
-            ais.append(ai_val)
-            labels.append('red' if significant else 'blue')
+            for j in range(current.shape[0]):
+                ai_val = current[['AI']].values[j, 0]
+                significant = current[['significant']].values[j, 0]
+                p_id = current[['peak_id']].values[j, 0]
+                peak = current_peaks.loc[current_peaks['peak_id'] == p_id]
+                start = 488 + math.ceil((current['start'].values[j] - peak['start'].values[0]) / 128)
+                end = start + math.ceil((peak['end'].values[0] - peak['start'].values[0]) / 128) + 1
 
-        diffs = np.array(diffs)
-        ais = np.array(ais)
+                ref_val = ref_ti[i, start:end]
+                alt_val = alt_ti[alt_seqs[seq], start:end]
+                diff = np.average(ref_val / (ref_val + alt_val + 1e-10))
+                diffs.append(diff)
+                ais.append(ai_val)
+                labels.append('blue' if significant else 'black')
+
+        diffs = np.nan_to_num(np.array(diffs))
+        ais = np.nan_to_num(np.array(ais))
         # plot
         sns.set(font_scale=1.2, style='ticks')
         out_pdf = f'ref_alt_{track[0]}.png'
@@ -168,6 +184,6 @@ if __name__ == '__main__':
             sample=None,
             figsize=(6, 6),
             colors=labels,
-            x_label='|REF-AI| Basenji prediction',
+            x_label='Basenji prediction - REF / (REF + ALT)',
             y_label='AI score',
             table=True)
