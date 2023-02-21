@@ -4,7 +4,7 @@ import h5py
 import numpy as np
 import pandas as pd
 import seaborn as sns
-from basenji import plots
+# from basenji import plots
 import matplotlib.pyplot as plt
 
 from scipy.stats import spearmanr, pearsonr, poisson
@@ -141,6 +141,7 @@ if __name__ == '__main__':
         diffs = []
         ais = []
         labels = []
+        classes = []
         for i, seq in enumerate(ref_seqs):
             # tracks = {f'F1 REF - seq {i}': ref_ti[i, :],
             #           f'F1 ALT - seq {i}': alt_ti[i, :],
@@ -165,25 +166,31 @@ if __name__ == '__main__':
 
                 ref_val = ref_ti[i, start:end]
                 alt_val = alt_ti[alt_seqs[seq], start:end]
-                diff = np.average(ref_val / (ref_val + alt_val + 1e-10))
+                # diff = np.average(ref_val / (ref_val + alt_val + 1e-10))
+                diff = np.average(ref_val - alt_val)
                 diffs.append(diff)
                 ais.append(ai_val)
                 labels.append('blue' if significant else 'black')
+                classes.append('AI>0.6' if ai_val > 0.6 else 'AI<0.4' if ai_val < 0.4 else '0.6>AI>0.4')
 
-        diffs = np.nan_to_num(np.array(diffs))
-        ais = np.nan_to_num(np.array(ais))
-        # plot
-        sns.set(font_scale=1.2, style='ticks')
-        out_pdf = f'ref_alt_{track[0]}.png'
-        plots.regplot(
-            diffs,
-            ais,
-            out_pdf,
-            poly_order=1,
-            alpha=0.3,
-            sample=None,
-            figsize=(6, 6),
-            colors=labels,
-            x_label='Basenji prediction - REF / (REF + ALT)',
-            y_label='AI score',
-            table=True)
+        # diffs = np.nan_to_num(np.array(diffs))
+        # ais = np.nan_to_num(np.array(ais))
+        # # plot
+        # sns.set(font_scale=1.2, style='ticks')
+        # out_pdf = f'ref_alt_{track[0]}.png'
+        # plots.regplot(
+        #     diffs,
+        #     ais,
+        #     out_pdf,
+        #     poly_order=1,
+        #     alpha=0.3,
+        #     sample=None,
+        #     figsize=(6, 6),
+        #     colors=labels,
+        #     x_label='Basenji prediction - REF / (REF + ALT)',
+        #     y_label='AI score',
+        #     table=True)
+        df = pd.DataFrame(list(zip(diffs, classes)), columns=['val', 'class'])
+        print(df.head())
+        sns.boxplot(data=df, x='class', y='val')
+        plt.savefig(f'ref_alt_{track[0]}.png')
