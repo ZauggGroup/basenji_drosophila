@@ -109,7 +109,8 @@ if __name__ == '__main__':
                      '/g/scb/zaugg/stojanov/basenji/experiments/variants_predictions/GATK_raw_bin_1012h_alt.bed']
     ref_bed_files = ['/g/scb/zaugg/stojanov/basenji/experiments/variants_predictions/GATK_raw_twi_24h_ref.bed',
                      '/g/scb/zaugg/stojanov/basenji/experiments/variants_predictions/GATK_raw_bin_1012h_ref.bed']
-    tracks = [('twi.24', important_tracks['twi.24']), ('bin.1012', important_tracks['bin.1012'])]
+    tracks = [('twi.24', important_tracks['twi.24']),
+              ('bin.1012', important_tracks['bin.1012'])]
     variants_file = '/g/scb/zaugg/stojanov/basenji/experiments/data/quantified_variants_all_conditions.txt'
     peaks_file = '/g/scb/zaugg/stojanov/basenji/experiments/data/peaks_all_conditions.txt'
     variants = pd.read_csv(variants_file, sep=r'\s+', header=0, index_col=False)

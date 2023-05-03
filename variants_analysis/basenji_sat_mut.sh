@@ -9,7 +9,6 @@
 #SBATCH --mail-type=END,FAIL
 #SBATCH --mail-user=frosina.stojanovska@embl.de
 #SBATCH -p gpu-el8
-#SBATCH -C gpu=A40
 #SBATCH --gres=gpu:1
 #SBATCH --qos=high
 module load CUDA/11.3.1
@@ -22,6 +21,6 @@ export PYTHONPATH="/g/scb/zaugg/stojanov/basenji:$PYTHONPATH"
 echo '... done.'
 echo 'starting testing'
 cd /g/scb/zaugg/stojanov/basenji/bin
-/g/scb/zaugg/stojanov/development/miniconda3/envs/basenji/bin/python basenji_sat_vcf.py --f1 /g/scb/zaugg/stojanov/basenji/experiments/data/dm6.UCSC.noMask.fa -l 200 -o /g/scb/zaugg/stojanov/basenji/experiments/variants_predictions/sat_mut/ --rc --shifts "1,0,-1" -t /g/scb/zaugg/stojanov/basenji/experiments/data/drosophila.txt /g/scb/zaugg/stojanov/basenji/experiments/models/drosophila_l131k_augmented/params.json /g/scb/zaugg/stojanov/basenji/experiments/models/drosophila_l131k_augmented/model_best.h5 /g/scb/zaugg/stojanov/basenji/experiments/data/Haplotype_joint_call_F1_stringent_filtering.vcf
+/g/scb/zaugg/stojanov/development/miniconda3/envs/basenji/bin/python basenji_sat_vcf.py --f1 /g/scb/zaugg/stojanov/basenji/experiments/data/dm6.UCSC.noMask.fa -l 200 -o /scratch/stojanov/basenji/experiments/variants_predictions/sat_mut/ --rc --shifts "1,0,-1" --stats "sum,center,scd,js" -t /g/scb/zaugg/stojanov/basenji_drosophila/variants_analysis/drosophila_tfs.txt /g/scb/zaugg/stojanov/basenji/experiments/models/drosophila_l131k_augmented/params.json /g/scb/zaugg/stojanov/basenji/experiments/models/drosophila_l131k_augmented/model_best.h5 /g/scb/zaugg/stojanov/basenji/experiments/data/Haplotype_joint_call_F1_stringent_filtering_AI_significant.vcf
 conda deactivate
 echo '...done.'
